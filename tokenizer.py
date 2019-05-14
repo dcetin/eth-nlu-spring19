@@ -1,4 +1,5 @@
 from collections import Counter
+import nltk
 
 class Tokenizer:
     """ Tokenizer is used to turn tokens (words and special tokens) into sequences of integers
@@ -23,7 +24,7 @@ class Tokenizer:
                 ('<unk>', self.TOKEN_UNK)
             ]
 
-            counter = Counter(word.lower() for sent in texts for word in sent.split(' '))
+            counter = Counter(word.lower() for sent in texts for word in nltk.word_tokenize(sent))
             for word, index in special_tokens: 
                 self.word_index[word] = index
                 self.index_word[index] = word
@@ -46,7 +47,7 @@ class Tokenizer:
     
     def texts_to_sequences_generator(self, texts, prepend_bos=True, append_eos=True):
         for text in texts:
-            words = [word.lower() for word in text.split(' ')]
+            words = [word.lower() for word in nltk.word_tokenize(text)]
             sequence = list()
             if prepend_bos:
                 sequence.append(1)
