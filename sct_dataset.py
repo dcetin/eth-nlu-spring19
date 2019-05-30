@@ -34,7 +34,7 @@ def read_sct_stories(fname, skip_header=True):
                 raise Exception('wrong number of items in input file')
     return SCTStories(beginnings, real_endings, fake_endings if len(fake_endings) > 0 else None)
 
-def sct_stories_to_sequences(texts_to_sequences_func, sct_stories, max_seq_len=90):
+def sct_stories_to_sequences(texts_to_sequences_func, sct_stories, max_seq_len=91):
     seq_b = pad_sequences(texts_to_sequences_func(sct_stories.begin), maxlen=max_seq_len)
     seq_b = seq_b.reshape(seq_b.shape[0]//4, 4, seq_b.shape[1])
     seq_r = pad_sequences(texts_to_sequences_func(sct_stories.end_real), maxlen=max_seq_len)
@@ -45,24 +45,13 @@ def sct_stories_to_sequences(texts_to_sequences_func, sct_stories, max_seq_len=9
 
 class SCTCachedReader:
     TOKENIZER_FILE = 'tokenizer.pickle'
-    
-    def __init__(self, dirname, tokenizer):
+
+    def __init__(self, dirname, tokenizer, max_seq_len=91):
+        if not os.path.isdir(dirname):
+            raise ValueError('given cache directory does not exist')
         self.cachedir = dirname
         self.tokenizer = tokenizer
-        self.max_seq_len = 90
-    
-    @staticmethod
-    def create(dirname, tokenizer):
-        os.makedirs(dirname)
-        with open(os.path.join(dirname, SCTCachedReader.TOKENIZER_FILE), 'wb') as f:
-            pickle.dump(tokenizer, f)
-        return SCTCachedReader(dirname, tokenizer)
-    
-    @staticmethod
-    def from_directory(dirname):
-        with open(os.path.join(dirname, SCTCachedReader.TOKENIZER_FILE), 'rb') as f:
-            tokenizer = pickle.load(f)
-        return SCTCachedReader(dirname, tokenizer)
+        self.max_seq_len = max_seq_len
 
     def read_stories(self, filename):
         def f():
@@ -70,6 +59,6 @@ class SCTCachedReader:
             return sct_stories_to_sequences(self.tokenizer.texts_to_sequences, stories, self.max_seq_len)
         cache_fname = os.path.join(self.cachedir, os.path.basename(filename) + '.pickle')
         return load_or_compute(cache_fname, f)
-    
+
     def sequences_to_texts(self, sequences):
         return self.tokenizer.sequences_to_texts(sequences)
