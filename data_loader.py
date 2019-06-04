@@ -17,6 +17,8 @@ class DataLoader:
         self.data_dir = data_dir
         self.max_vocabulary_size = max_vocabulary_size
         self.max_seq_len = max_seq_len
+        # create cache dir if it does not exist
+        os.makedirs(cache_dir, exist_ok=True)
 
     def get_tokenizer(self):
         tokenizer_fname = os.path.join(self.cache_dir,

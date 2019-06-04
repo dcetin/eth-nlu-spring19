@@ -2,6 +2,7 @@ from data_loader import DataLoader
 from experiment_runner import ExperimentRunner
 import argparse
 from sys import exit
+import nltk
 
 VOCABULARY_SIZE = 20000
 MAX_SEQ_LEN = 91
@@ -11,6 +12,8 @@ import numpy as np
 from tensorflow import set_random_seed
 np.random.seed(13)
 set_random_seed(13)
+
+nltk.download('punkt')
 
 argparser = argparse.ArgumentParser()
 argparser.add_argument('-d', '--data-dir', action='store', dest='data_dir', help='here are all the data files stored', default='data')
