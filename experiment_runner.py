@@ -211,7 +211,7 @@ class ModelWrapper:
         np.savetxt(os.path.join(self.output_dir, '%s-predictions_probabs.tsv' % output_prefix),
             predictions, delimiter='\t', fmt='%d')
 
-    def train(self, data_train, data_eval, max_epochs=10, limit=None):
+    def train(self, data_train, data_eval, max_epochs=10, limit=None, eval_each_epoch=1):
         n_epochs = max_epochs - self.global_step
         if n_epochs <= 0:
             print('*** skipping training ***')
@@ -222,20 +222,24 @@ class ModelWrapper:
 
             loss = train_one_epoch(self.model, data_train['stories_real'][:limit], data_train['sentiment_real'][:limit])
 
-            ppls_real, norm_probabs_real, _ = evaluate(self.model, data_eval['stories_real'][:limit], data_eval['sentiment_real'][:limit])
-            ppls_fake, norm_probabs_fake, _ = evaluate(self.model, data_eval['stories_fake'][:limit], data_eval['sentiment_fake'][:limit])
+            if ep % eval_each_epoch == 0:
+                ppls_real, norm_probabs_real, _ = evaluate(self.model, data_eval['stories_real'][:limit], data_eval['sentiment_real'][:limit])
+                ppls_fake, norm_probabs_fake, _ = evaluate(self.model, data_eval['stories_fake'][:limit], data_eval['sentiment_fake'][:limit])
 
-            ppls_result = ppls_real[:, -1].ravel() < ppls_fake[:, -1].ravel()
-            ppls_accuracy = np.count_nonzero(ppls_result)/ppls_result.shape[0]
+                ppls_result = ppls_real[:, -1].ravel() < ppls_fake[:, -1].ravel()
+                ppls_accuracy = np.count_nonzero(ppls_result)/ppls_result.shape[0]
 
-            probabs_result = norm_probabs_real[:, -1].ravel() > norm_probabs_fake[:, -1].ravel()
-            probabs_accuracy = np.count_nonzero(probabs_result)/probabs_result.shape[0]
+                probabs_result = norm_probabs_real[:, -1].ravel() > norm_probabs_fake[:, -1].ravel()
+                probabs_accuracy = np.count_nonzero(probabs_result)/probabs_result.shape[0]
 
             mode = 'w' if ep == 0 else 'a'
             with open(os.path.join(self.output_dir, 'training-metrics.tsv'), mode) as fout:
                 if ep == 0:
                     fout.write('# epoch\taccuracy_with_ppls\taccuracy_with_probabs\tloss\n')
-                fout.write('%d\t%f\t%f\t%f\n' % (ep+1, ppls_accuracy, probabs_accuracy, loss))
+                if ep % eval_each_epoch == 0:
+                    fout.write('%d\t%f\t%f\t%f\n' % (ep+1, ppls_accuracy, probabs_accuracy, loss))
+                else:
+                    fout.write('%d\tn/a\tn/a\t%f\n' % (ep+1, loss))
 
         model_path = os.path.join(self.output_dir, 'model_weights.h5')
         self.model.save_weights(model_path)
