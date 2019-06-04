@@ -3,6 +3,7 @@ from experiment_runner import ExperimentRunner
 import argparse
 from sys import exit
 import nltk
+import json
 
 VOCABULARY_SIZE = 20000
 MAX_SEQ_LEN = 91
@@ -25,11 +26,10 @@ argparser.add_argument('--new', action='store', dest='new_experiment', help='cre
 argparser.add_argument('--epochs', action='store', dest='epochs', help='number of epochs', default=10, type=int)
 argparser.add_argument('--limit', action='store', dest='limit', help='limit processing to n samples', default=None, type=int)
 argparser.add_argument('--model', action='store', dest='model_name', help='specifies the model')
-argparser.add_argument('--params', action='store', dest='model_params', help='specifies parameters as json')
+argparser.add_argument('--params', action='store', dest='model_params', help='specifies parameters as json', type=json.loads, default={})
 argparser.add_argument('--train-for', action='store', dest='train_for', help='train for n epochs', type=int)
 argparser.add_argument('--evaluate-all', action='store_true', dest='evaluate_all', help='evaluate_all')
 argparser.add_argument('--predict-all', action='store_true', dest='predict_all', help='predict_all')
-
 args = argparser.parse_args()
 
 loader = DataLoader(
@@ -53,7 +53,7 @@ if args.list_experiments:
 elif args.load_experiment:
     model = runner.get_experiment(args.load_experiment)
 elif args.new_experiment:
-    model = runner.new_experiment(args.new_experiment, args.model_name, args.model_params)
+    model = runner.new_experiment(args.new_experiment, args.model_name, **args.model_params)
 
 if args.train_for:
      model.train(data_train, data_eval, max_epochs=args.train_for, limit=args.limit)
