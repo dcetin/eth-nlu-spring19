@@ -30,8 +30,12 @@ def read_sct_stories(fname, skip_header=True):
                 else:
                     real_endings.append(row[-2])
                     fake_endings.append(row[-3])
+            elif len(row) == 6: #test set, real and fake endings but no labels
+                beginnings.extend(row[0:4])
+                real_endings.append(row[4])
+                fake_endings.append(row[5])
             else:
-                raise Exception('wrong number of items in input file')
+                raise Exception('wrong number of items in input file (%d)' % len(row))
     return SCTStories(beginnings, real_endings, fake_endings if len(fake_endings) > 0 else None)
 
 def sct_stories_to_sequences(texts_to_sequences_func, sct_stories, max_seq_len=91):
