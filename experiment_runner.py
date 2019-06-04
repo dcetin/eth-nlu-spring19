@@ -181,7 +181,7 @@ class ModelWrapper:
         ppls_accuracy = np.count_nonzero(ppls_result)/ppls_result.shape[0]
         probabs_result = norm_probabs_real[:, -1].ravel() > norm_probabs_fake[:, -1].ravel()
         probabs_accuracy = np.count_nonzero(probabs_result)/probabs_result.shape[0]
-        with open('evaluate-accuracy-%s.tsv' % output_suffix, 'w') as f:
+        with open(os.path.join(self.output_dir, 'evaluate-accuracy-%s.tsv' % output_suffix), 'w') as f:
             f.write('type\tscore\n')
             f.write('%s\t%f\n' % ('accuracy-on-pplty', ppls_accuracy))
             f.write('%s\t%f\n' % ('accuracy-on-probab_ratio', probabs_accuracy))
