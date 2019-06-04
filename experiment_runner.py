@@ -19,11 +19,14 @@ def calculate_perplexities(Y, Y_pred):
     perplexities = []
     for j in range(Y.shape[0]):
         N = np.count_nonzero(Y[j])
-        s = 0
-        for pos in range(Y.shape[1]):
-            if Y[j][pos] > 0:
-                s += np.log(Y_pred[j][pos][Y[j][pos]])
-        perplexities.append(np.exp(-1/N * s))
+        if N > 0:
+            s = 0
+            for pos in range(Y.shape[1]):
+                if Y[j][pos] > 0:
+                    s += np.log(Y_pred[j][pos][Y[j][pos]])
+            perplexities.append(np.exp(-1/N * s))
+        else:
+            perplexities.append(np.nan)
     return np.array(perplexities)
 
 def calculate_probabs(Y, Y_pred):
@@ -170,32 +173,41 @@ class ModelWrapper:
         self.global_step = global_step
         self.batch_size = model.input.shape[0]
 
-    def evaluate(self, data_eval, output_prefix, limit=None):
+    def evaluate(self, data_eval, output_suffix, limit=None):
         ppls_real, norm_probabs_real, corr_pols_real = evaluate(self.model, data_eval['stories_real'][:limit], data_eval['sentiment_real'][:limit])
         ppls_fake, norm_probabs_fake, corr_pols_fake = evaluate(self.model, data_eval['stories_fake'][:limit], data_eval['sentiment_fake'][:limit])
+
+        ppls_result = ppls_real[:, -1].ravel() < ppls_fake[:, -1].ravel()
+        ppls_accuracy = np.count_nonzero(ppls_result)/ppls_result.shape[0]
+        probabs_result = norm_probabs_real[:, -1].ravel() > norm_probabs_fake[:, -1].ravel()
+        probabs_accuracy = np.count_nonzero(probabs_result)/probabs_result.shape[0]
+        with open('evaluate-accuracy-%s.tsv' % output_suffix, 'w') as f:
+            f.write('type\tscore\n')
+            f.write('%s\t%f\n' % ('accuracy-on-pplty', ppls_accuracy))
+            f.write('%s\t%f\n' % ('accuracy-on-probab_ratio', probabs_accuracy))
 
         output = np.concatenate([
             ppls_real[:, :4], ppls_real[:, 4, None], ppls_fake[:, 4, None],
         ], axis=1)
         header = '\t'.join(['ppl1', 'ppl2', 'ppl3', 'ppl4', 'ppl5a', 'ppl5b'])
-        np.savetxt(os.path.join(self.output_dir, '%s-perplexities.tsv' % output_prefix),
+        np.savetxt(os.path.join(self.output_dir, 'evaluate-pplty-%s.tsv' % output_suffix),
             output, header=header, delimiter='\t')
 
         output = np.concatenate([
             norm_probabs_real[:, :4], norm_probabs_real[:, 4, None], norm_probabs_fake[:, 4, None],
         ], axis=1)
-        header = '\t'.join(['norm_probabs1', 'norm_probabs2', 'norm_probabs3', 'norm_probabs4', 'norm_probabs5a', 'norm_probabs5b'])
-        np.savetxt(os.path.join(self.output_dir, '%s-norm_probabs.tsv' % output_prefix),
+        header = '\t'.join(['probab_ratio1', 'probab_ratio2', 'probab_ratio3', 'probab_ratio4', 'probab_ratio5a', 'probab_ratio5b'])
+        np.savetxt(os.path.join(self.output_dir, 'evaluate-probab_ratio-%s.tsv' % output_suffix),
             output, header=header, delimiter='\t')
 
         output = np.concatenate([
             corr_pols_real[:, :4], corr_pols_real[:, 4, None], corr_pols_fake[:, 4, None]
         ], axis=1)
         header = '\t'.join(['corr_pol1', 'corr_pol2', 'corr_pol3', 'corr_pol4', 'corr_pol5a', 'corr_pol5b'])
-        np.savetxt(os.path.join(self.output_dir, '%s-correct_sentiments.tsv' % output_prefix),
+        np.savetxt(os.path.join(self.output_dir, 'evaluate-sentiment-%s.tsv' % output_suffix),
             output, header=header, delimiter='\t', fmt='%d')
 
-    def predict(self, data_eval, output_prefix, limit=None):
+    def predict(self, data_eval, output_suffix, limit=None):
         ppls_real, norm_probabs_real, _ = evaluate(self.model, data_eval['stories_real'][:limit], data_eval['sentiment_real'][:limit])
         ppls_fake, norm_probabs_fake, _ = evaluate(self.model, data_eval['stories_fake'][:limit], data_eval['sentiment_fake'][:limit])
 
@@ -205,10 +217,10 @@ class ModelWrapper:
         predictions_ppls = (2-ppls_result.astype(int))
         predictions_probabs = (2-probabs_result.astype(int))
 
-        np.savetxt(os.path.join(self.output_dir, '%s-predictions_ppls.tsv' % output_prefix),
+        np.savetxt(os.path.join(self.output_dir, 'predictions-on-pplty-%s.tsv' % output_suffix),
             predictions_ppls, delimiter='\t', fmt='%d')
 
-        np.savetxt(os.path.join(self.output_dir, '%s-predictions_probabs.tsv' % output_prefix),
+        np.savetxt(os.path.join(self.output_dir, 'predictions-on-probab_ratio-%s.tsv' % output_suffix),
             predictions_probabs, delimiter='\t', fmt='%d')
 
     def train(self, data_train, data_eval, max_epochs=10, limit=None, eval_each_epoch=1):
@@ -233,9 +245,9 @@ class ModelWrapper:
                 probabs_accuracy = np.count_nonzero(probabs_result)/probabs_result.shape[0]
 
             mode = 'w' if ep == 0 else 'a'
-            with open(os.path.join(self.output_dir, 'training-metrics.tsv'), mode) as fout:
+            with open(os.path.join(self.output_dir, 'training-report.tsv'), mode) as fout:
                 if ep == 0:
-                    fout.write('# epoch\taccuracy_with_ppls\taccuracy_with_probabs\tloss\n')
+                    fout.write('# epoch\taccuracy-on-pplty\taccuracy-on-probab_ratio\tloss\n')
                 if ep % eval_each_epoch == 0:
                     fout.write('%d\t%f\t%f\t%f\n' % (ep+1, ppls_accuracy, probabs_accuracy, loss))
                 else:
