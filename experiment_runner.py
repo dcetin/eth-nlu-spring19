@@ -206,10 +206,10 @@ class ModelWrapper:
         predictions_probabs = (2-probabs_result.astype(int))
 
         np.savetxt(os.path.join(self.output_dir, '%s-predictions_ppls.tsv' % output_prefix),
-            predictions, delimiter='\t', fmt='%d')
+            predictions_ppls, delimiter='\t', fmt='%d')
 
         np.savetxt(os.path.join(self.output_dir, '%s-predictions_probabs.tsv' % output_prefix),
-            predictions, delimiter='\t', fmt='%d')
+            predictions_probabs, delimiter='\t', fmt='%d')
 
     def train(self, data_train, data_eval, max_epochs=10, limit=None, eval_each_epoch=1):
         n_epochs = max_epochs - self.global_step
