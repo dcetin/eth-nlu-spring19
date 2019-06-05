@@ -306,7 +306,7 @@ class ModelWrapper:
                 if ep == 0:
                     fout.write('# epoch\taccuracy-on-pplty\taccuracy-on-proba_ratio\tsentiment_accuracy\tloss\n')
                 if ep % eval_each_epoch == 0:
-                    fout.write('%d\t%f\t%f\t%f\n' % (ep+1, ppls_accuracy, probabs_accuracy, sentiment_accuracy, loss))
+                    fout.write('%d\t%f\t%f\t%f\t%f\n' % (ep+1, ppls_accuracy, probabs_accuracy, sentiment_accuracy, loss))
                 else:
                     fout.write('%d\tn/a\tn/a\tn/a\t%f\n' % (ep+1, loss))
 
