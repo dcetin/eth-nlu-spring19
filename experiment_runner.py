@@ -198,7 +198,7 @@ class ModelWrapper:
         ppls_accuracy = np.count_nonzero(y==y_pred_ppls)/y.shape[0]
         probabs_accuracy = np.count_nonzero(y==y_pred_probabs)/y.shape[0]
 
-        corr_pols = np.concatenate([corr_pols_one[:, :4], corr_pols_one[:, 4, None], corr_pols_two[:, 4, None]]).ravel()
+        corr_pols = np.concatenate([corr_pols_one[:, :4], corr_pols_one[:, 4, None], corr_pols_two[:, 4, None]], axis=1).ravel()
         sentiment_accuracy = np.count_nonzero(corr_pols)/corr_pols.shape[0]
 
         with open(os.path.join(self.output_dir, '%s-evaluate-accuracy.tsv' % output_prefix), 'w') as f:
@@ -289,7 +289,7 @@ class ModelWrapper:
                 ppls_one, norm_probabs_one, corr_pols_one, _, _ = evaluate(self.model, data_eval['stories_one'][:limit], data_eval['sentiment_one'][:limit])
                 ppls_two, norm_probabs_two, corr_pols_two, _, _ = evaluate(self.model, data_eval['stories_two'][:limit], data_eval['sentiment_two'][:limit])
 
-                corr_pols = np.concatenate([corr_pols_one[:, :4], corr_pols_one[:, 4, None], corr_pols_two[:, 4, None]]).ravel()
+                corr_pols = np.concatenate([corr_pols_one[:, :4], corr_pols_one[:, 4, None], corr_pols_two[:, 4, None]], axis=1).ravel()
                 sentiment_accuracy = np.count_nonzero(corr_pols)/corr_pols.shape[0]
 
                 ppls_result = ppls_one[:, -1].ravel() < ppls_two[:, -1].ravel()
