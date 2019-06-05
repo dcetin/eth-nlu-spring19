@@ -174,6 +174,8 @@ class ModelWrapper:
         self.batch_size = model.input.shape[0]
 
     def evaluate(self, data_eval, output_suffix, limit=None):
+        y = data_eval['stories_correct'][:limit]
+        
         ppls_one, norm_probabs_one, corr_pols_one = evaluate(self.model, data_eval['stories_one'][:limit], data_eval['sentiment_one'][:limit])
         ppls_two, norm_probabs_two, corr_pols_two = evaluate(self.model, data_eval['stories_two'][:limit], data_eval['sentiment_two'][:limit])
 
