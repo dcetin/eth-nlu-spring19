@@ -63,10 +63,10 @@ if args.train_for:
      model.train(data_train, data_eval, max_epochs=args.train_for, limit=args.limit)
 
 if args.evaluate_all:
-    model.evaluate(data_eval, 'dev', limit=args.limit)
+    model.evaluate(data_dev, 'dev', limit=args.limit)
     model.evaluate(data_test, 'test', limit=args.limit)
 
 if args.predict_all:
-    model.predict(data_eval, 'dev', limit=args.limit)
+    model.predict(data_dev, 'dev', limit=args.limit)
     model.predict(data_test, 'test', limit=args.limit)
     model.predict(data_report, 'report', limit=args.limit)
