@@ -263,15 +263,17 @@ class ModelWrapper:
         ], axis=1)
 
         all_features = np.concatenate([features_one, features_two])
+        header = 'proba_ratio\tproba_es\tproba_e\tsent_neg\tsent_neu\tsent_pos'
         np.savetxt(os.path.join(self.output_dir, '%s-transform-features.tsv' % output_prefix),
-            all_features, delimiter='\t')
+            all_features, delimiter='\t', header=header)
 
         if 'stories_correct' in data_eval:
             labels_one = data_eval['stories_correct'][:limit] == 1
             labels_two = data_eval['stories_correct'][:limit] == 2
             all_labels = np.concatenate([labels_one, labels_two])
+            header = 'is_correct_ending'
             np.savetxt(os.path.join(self.output_dir, '%s-transform-labels.tsv' % output_prefix),
-                all_labels, delimiter='\t')
+                all_labels, delimiter='\t', fmt='%d', header=header)
 
     def train(self, data_train, data_eval, max_epochs=10, limit=None, eval_each_epoch=1):
         n_epochs = max_epochs - self.global_step
