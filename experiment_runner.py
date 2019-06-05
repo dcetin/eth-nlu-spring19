@@ -173,9 +173,9 @@ class ModelWrapper:
         self.global_step = global_step
         self.batch_size = model.input.shape[0]
 
-    def evaluate(self, data_eval, output_suffix, limit=None):
+    def evaluate(self, data_eval, output_prefix, limit=None):
         y = data_eval['stories_correct'][:limit]
-        
+
         ppls_one, norm_probabs_one, corr_pols_one = evaluate(self.model, data_eval['stories_one'][:limit], data_eval['sentiment_one'][:limit])
         ppls_two, norm_probabs_two, corr_pols_two = evaluate(self.model, data_eval['stories_two'][:limit], data_eval['sentiment_two'][:limit])
 
@@ -188,33 +188,33 @@ class ModelWrapper:
         ppls_accuracy = np.count_nonzero(y==y_pred_ppls)/y.shape[0]
         probabs_accuracy = np.count_nonzero(y==y_pred_probabs)/y.shape[0]
 
-        with open(os.path.join(self.output_dir, 'evaluate-accuracy-%s.tsv' % output_suffix), 'w') as f:
+        with open(os.path.join(self.output_dir, '%s-evaluate-accuracy.tsv' % output_prefix), 'w') as f:
             f.write('type\tscore\n')
             f.write('%s\t%f\n' % ('accuracy-on-pplty', ppls_accuracy))
-            f.write('%s\t%f\n' % ('accuracy-on-probab_ratio', probabs_accuracy))
+            f.write('%s\t%f\n' % ('accuracy-on-proba_ratio', probabs_accuracy))
 
         output = np.concatenate([
             ppls_one[:, :4], ppls_one[:, 4, None], ppls_two[:, 4, None],
         ], axis=1)
         header = '\t'.join(['ppl1', 'ppl2', 'ppl3', 'ppl4', 'ppl5a', 'ppl5b'])
-        np.savetxt(os.path.join(self.output_dir, 'evaluate-pplty-%s.tsv' % output_suffix),
+        np.savetxt(os.path.join(self.output_dir, '%s-evaluate-pplty.tsv' % output_prefix),
             output, header=header, delimiter='\t')
 
         output = np.concatenate([
             norm_probabs_one[:, :4], norm_probabs_one[:, 4, None], norm_probabs_two[:, 4, None],
         ], axis=1)
-        header = '\t'.join(['probab_ratio1', 'probab_ratio2', 'probab_ratio3', 'probab_ratio4', 'probab_ratio5a', 'probab_ratio5b'])
-        np.savetxt(os.path.join(self.output_dir, 'evaluate-probab_ratio-%s.tsv' % output_suffix),
+        header = '\t'.join(['proba_ratio1', 'proba_ratio2', 'proba_ratio3', 'proba_ratio4', 'proba_ratio5a', 'proba_ratio5b'])
+        np.savetxt(os.path.join(self.output_dir, '%s-evaluate-proba_ratio.tsv' % output_prefix),
             output, header=header, delimiter='\t')
 
         output = np.concatenate([
             corr_pols_one[:, :4], corr_pols_one[:, 4, None], corr_pols_two[:, 4, None]
         ], axis=1)
         header = '\t'.join(['corr_pol1', 'corr_pol2', 'corr_pol3', 'corr_pol4', 'corr_pol5a', 'corr_pol5b'])
-        np.savetxt(os.path.join(self.output_dir, 'evaluate-sentiment-%s.tsv' % output_suffix),
+        np.savetxt(os.path.join(self.output_dir, '%s-evaluate-sentiment.tsv' % output_prefix),
             output, header=header, delimiter='\t', fmt='%d')
 
-    def predict(self, data_eval, output_suffix, limit=None):
+    def predict(self, data_eval, output_prefix, limit=None):
         ppls_one, norm_probabs_one, _ = evaluate(self.model, data_eval['stories_one'][:limit], data_eval['sentiment_one'][:limit])
         ppls_two, norm_probabs_two, _ = evaluate(self.model, data_eval['stories_two'][:limit], data_eval['sentiment_two'][:limit])
 
@@ -224,10 +224,10 @@ class ModelWrapper:
         predictions_ppls = (2-ppls_result.astype(int))
         predictions_probabs = (2-probabs_result.astype(int))
 
-        np.savetxt(os.path.join(self.output_dir, 'predictions-on-pplty-%s.tsv' % output_suffix),
+        np.savetxt(os.path.join(self.output_dir, '%s-predictions-on-pplty.tsv' % output_prefix),
             predictions_ppls, delimiter='\t', fmt='%d')
 
-        np.savetxt(os.path.join(self.output_dir, 'predictions-on-probab_ratio-%s.tsv' % output_suffix),
+        np.savetxt(os.path.join(self.output_dir, '%s-predictions-on-proba_ratio.tsv' % output_prefix),
             predictions_probabs, delimiter='\t', fmt='%d')
 
     def train(self, data_train, data_eval, max_epochs=10, limit=None, eval_each_epoch=1):
@@ -258,7 +258,7 @@ class ModelWrapper:
             mode = 'w' if ep == 0 else 'a'
             with open(os.path.join(self.output_dir, 'training-report.tsv'), mode) as fout:
                 if ep == 0:
-                    fout.write('# epoch\taccuracy-on-pplty\taccuracy-on-probab_ratio\tloss\n')
+                    fout.write('# epoch\taccuracy-on-pplty\taccuracy-on-proba_ratio\tloss\n')
                 if ep % eval_each_epoch == 0:
                     fout.write('%d\t%f\t%f\t%f\n' % (ep+1, ppls_accuracy, probabs_accuracy, loss))
                 else:
