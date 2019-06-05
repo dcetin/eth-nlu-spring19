@@ -60,7 +60,7 @@ elif args.new_experiment:
     model = runner.new_experiment(args.new_experiment, args.model_name, **args.model_params)
 
 if args.train_for:
-     model.train(data_train, data_eval, max_epochs=args.train_for, limit=args.limit)
+     model.train(data_train, data_dev, max_epochs=args.train_for, limit=args.limit)
 
 if args.evaluate_all:
     model.evaluate(data_dev, 'dev', limit=args.limit)
