@@ -3,6 +3,7 @@ import os
 from tensorflow import keras
 from tensorflow.keras.utils import Progbar
 from scipy.special import softmax
+from tensorflow.keras.utils import to_categorical
 import tensorflow as tf
 import numpy as np
 import pickle
@@ -131,7 +132,8 @@ def evaluate(model, stories, sentiments, batch_size=50):
     pb.update(0)
 
     perplexities = np.zeros(batches_stories.shape[:-1])
-    norm_probabs = np.zeros(batches_stories.shape[:-1])
+    proba_es = np.zeros(batches_stories.shape[:-1])
+    proba_e = np.zeros(batches_stories.shape[:-1])
     sentiments_correct = np.zeros(batches_stories.shape[:-1], dtype='int32')
 
     for bn, (stories_batch, sentiments_batch) in enumerate(zip(batches_stories, batches_sentiments)):
@@ -145,26 +147,34 @@ def evaluate(model, stories, sentiments, batch_size=50):
             X, Y = get_XY_pair(sequences)
             Y_pred_proba, sentiments_proba, _ = model.predict_on_batch(X)
             perplexities[bn, :, i] = calculate_perplexities(Y, Y_pred_proba)
-            norm_probabs[bn, :, i] = calculate_probabs(Y, Y_pred_proba)
+            proba_es[bn, :, i] = calculate_probabs(Y, Y_pred_proba)
             sentiments_pred = np.argmax(sentiments_proba, axis=1)
             sentiments_correct[bn, :, i] = (sentiments.squeeze() == sentiments_pred)
 
-        # compute P(sentence_n) and normalize results
+        # compute P(sentence_n)
         for i in range(stories_batch.shape[1]):
             model.reset_states() # reset state for each turn
             sequences = stories_batch[:, i]
             X, Y = get_XY_pair(sequences)
             Y_pred_proba, _, _ = model.predict_on_batch(X)
-            norm_probabs[bn, :, i] = np.exp(np.log(norm_probabs[bn, :, i]) - np.log(calculate_probabs(Y, Y_pred_proba)))
+            #norm_probabs[bn, :, i] = np.exp(np.log(norm_probabs[bn, :, i]) - np.log(calculate_probabs(Y, Y_pred_proba)))
+            proba_e[bn, :, i] = calculate_probabs(Y, Y_pred_proba)
 
         pb.update(bn+1)
 
     perplexities = perplexities.reshape(-1, stories.shape[1])
     sentiments_correct = sentiments_correct.reshape(-1, stories.shape[1])
-    norm_probabs = norm_probabs.reshape(-1, stories.shape[1])
+    proba_e = proba_e.reshape(-1, stories.shape[1])
+    proba_es = proba_es.reshape(-1, stories.shape[1])
     total_counts = np.sum(counts_stories)
+    proba_ratio = np.exp(np.log(proba_es) - np.log(proba_e))
 
-    return perplexities[:total_counts], norm_probabs[:total_counts], sentiments_correct[:total_counts]
+    return (perplexities[:total_counts],
+        proba_ratio[:total_counts],
+        sentiments_correct[:total_counts],
+        proba_es[:total_counts],
+        proba_e[:total_counts],
+    )
 
 class ModelWrapper:
     def __init__(self, output_dir, global_step, model):
@@ -176,8 +186,8 @@ class ModelWrapper:
     def evaluate(self, data_eval, output_prefix, limit=None):
         y = data_eval['stories_correct'][:limit]
 
-        ppls_one, norm_probabs_one, corr_pols_one = evaluate(self.model, data_eval['stories_one'][:limit], data_eval['sentiment_one'][:limit])
-        ppls_two, norm_probabs_two, corr_pols_two = evaluate(self.model, data_eval['stories_two'][:limit], data_eval['sentiment_two'][:limit])
+        ppls_one, norm_probabs_one, corr_pols_one, _, _ = evaluate(self.model, data_eval['stories_one'][:limit], data_eval['sentiment_one'][:limit])
+        ppls_two, norm_probabs_two, corr_pols_two, _, _ = evaluate(self.model, data_eval['stories_two'][:limit], data_eval['sentiment_two'][:limit])
 
         ppls_result = ppls_one[:, -1].ravel() < ppls_two[:, -1].ravel()
         probabs_result = norm_probabs_one[:, -1].ravel() > norm_probabs_two[:, -1].ravel()
@@ -188,10 +198,14 @@ class ModelWrapper:
         ppls_accuracy = np.count_nonzero(y==y_pred_ppls)/y.shape[0]
         probabs_accuracy = np.count_nonzero(y==y_pred_probabs)/y.shape[0]
 
+        corr_pols = np.concatenate([corr_pols_one[:, :4], corr_pols_one[:, 4, None], corr_pols_two[:, 4, None]]).ravel()
+        sentiment_accuracy = np.count_nonzero(corr_pols)/corr_pols.shape[0]
+
         with open(os.path.join(self.output_dir, '%s-evaluate-accuracy.tsv' % output_prefix), 'w') as f:
             f.write('type\tscore\n')
             f.write('%s\t%f\n' % ('accuracy-on-pplty', ppls_accuracy))
             f.write('%s\t%f\n' % ('accuracy-on-proba_ratio', probabs_accuracy))
+            f.write('%s\t%f\n' % ('sentiment_accuracy', sentiment_accuracy))
 
         output = np.concatenate([
             ppls_one[:, :4], ppls_one[:, 4, None], ppls_two[:, 4, None],
@@ -215,8 +229,8 @@ class ModelWrapper:
             output, header=header, delimiter='\t', fmt='%d')
 
     def predict(self, data_eval, output_prefix, limit=None):
-        ppls_one, norm_probabs_one, _ = evaluate(self.model, data_eval['stories_one'][:limit], data_eval['sentiment_one'][:limit])
-        ppls_two, norm_probabs_two, _ = evaluate(self.model, data_eval['stories_two'][:limit], data_eval['sentiment_two'][:limit])
+        ppls_one, norm_probabs_one, _, _, _ = evaluate(self.model, data_eval['stories_one'][:limit], data_eval['sentiment_one'][:limit])
+        ppls_two, norm_probabs_two, _, _, _ = evaluate(self.model, data_eval['stories_two'][:limit], data_eval['sentiment_two'][:limit])
 
         ppls_result = ppls_one[:, -1].ravel() < ppls_two[:, -1].ravel()
         probabs_result = norm_probabs_one[:, -1].ravel() > norm_probabs_two[:, -1].ravel()
@@ -229,6 +243,35 @@ class ModelWrapper:
 
         np.savetxt(os.path.join(self.output_dir, '%s-predictions-on-proba_ratio.tsv' % output_prefix),
             predictions_probabs, delimiter='\t', fmt='%d')
+
+    def transform(self, data_eval, output_prefix, limit=None):
+        _, proba_ratio_one, _, proba_es_one, proba_e_one = evaluate(self.model, data_eval['stories_one'][:limit], data_eval['sentiment_one'][:limit])
+        _, proba_ratio_two, _, proba_es_two, proba_e_two = evaluate(self.model, data_eval['stories_two'][:limit], data_eval['sentiment_two'][:limit])
+
+        features_one = np.concatenate([
+            np.log(proba_ratio_one[:, -1, None]),
+            np.log(proba_es_one[:, -1, None]),
+            np.log(proba_e_one[:, -1, None]),
+            to_categorical(data_eval['sentiment_one'][:limit], 3)
+        ], axis=1)
+
+        features_two = np.concatenate([
+            np.log(proba_ratio_two[:, -1, None]),
+            np.log(proba_es_two[:, -1, None]),
+            np.log(proba_e_two[:, -1, None]),
+            to_categorical(data_eval['sentiment_two'][:limit], 3)
+        ], axis=1)
+
+        all_features = np.concatenate([features_one, features_two])
+        np.savetxt(os.path.join(self.output_dir, '%s-transform-features.tsv' % output_prefix),
+            all_features, delimiter='\t')
+
+        if 'stories_correct' in data_eval:
+            labels_one = data_eval['stories_correct'][:limit] == 1
+            labels_two = data_eval['stories_correct'][:limit] == 2
+            all_labels = np.concatenate([labels_one, labels_two])
+            np.savetxt(os.path.join(self.output_dir, '%s-transform-labels.tsv' % output_prefix),
+                all_labels, delimiter='\t')
 
     def train(self, data_train, data_eval, max_epochs=10, limit=None, eval_each_epoch=1):
         n_epochs = max_epochs - self.global_step
@@ -243,8 +286,11 @@ class ModelWrapper:
             loss = train_one_epoch(self.model, data_train['stories_one'][:limit], data_train['sentiment_one'][:limit])
 
             if ep % eval_each_epoch == 0:
-                ppls_one, norm_probabs_one, _ = evaluate(self.model, data_eval['stories_one'][:limit], data_eval['sentiment_one'][:limit])
-                ppls_two, norm_probabs_two, _ = evaluate(self.model, data_eval['stories_two'][:limit], data_eval['sentiment_two'][:limit])
+                ppls_one, norm_probabs_one, corr_pols_one, _, _ = evaluate(self.model, data_eval['stories_one'][:limit], data_eval['sentiment_one'][:limit])
+                ppls_two, norm_probabs_two, corr_pols_two, _, _ = evaluate(self.model, data_eval['stories_two'][:limit], data_eval['sentiment_two'][:limit])
+
+                corr_pols = np.concatenate([corr_pols_one[:, :4], corr_pols_one[:, 4, None], corr_pols_two[:, 4, None]]).ravel()
+                sentiment_accuracy = np.count_nonzero(corr_pols)/corr_pols.shape[0]
 
                 ppls_result = ppls_one[:, -1].ravel() < ppls_two[:, -1].ravel()
                 probabs_result = norm_probabs_one[:, -1].ravel() > norm_probabs_two[:, -1].ravel()
@@ -258,11 +304,11 @@ class ModelWrapper:
             mode = 'w' if ep == 0 else 'a'
             with open(os.path.join(self.output_dir, 'training-report.tsv'), mode) as fout:
                 if ep == 0:
-                    fout.write('# epoch\taccuracy-on-pplty\taccuracy-on-proba_ratio\tloss\n')
+                    fout.write('# epoch\taccuracy-on-pplty\taccuracy-on-proba_ratio\tsentiment_accuracy\tloss\n')
                 if ep % eval_each_epoch == 0:
-                    fout.write('%d\t%f\t%f\t%f\n' % (ep+1, ppls_accuracy, probabs_accuracy, loss))
+                    fout.write('%d\t%f\t%f\t%f\n' % (ep+1, ppls_accuracy, probabs_accuracy, sentiment_accuracy, loss))
                 else:
-                    fout.write('%d\tn/a\tn/a\t%f\n' % (ep+1, loss))
+                    fout.write('%d\tn/a\tn/a\tn/a\t%f\n' % (ep+1, loss))
 
         model_path = os.path.join(self.output_dir, 'model_weights.h5')
         self.model.save_weights(model_path)
