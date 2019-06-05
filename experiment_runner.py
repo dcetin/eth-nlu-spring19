@@ -281,9 +281,11 @@ class ExperimentRunner:
     def list_experiments(self):
         return os.listdir(self.output_dir)
 
+    def list_models(self):
+        return list(model_zoo.keys())
+
     def get_experiment(self, experiment_name):
         output_dir = os.path.join(self.output_dir, '%s' % experiment_name)
-        #model = keras.models.load_model(model_path)
         with open(os.path.join(output_dir, 'settings.json'), 'r') as f:
             settings = json.load(f)
         with open(os.path.join(output_dir, 'global_step'), 'r') as f:
