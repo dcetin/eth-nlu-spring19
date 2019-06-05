@@ -174,45 +174,50 @@ class ModelWrapper:
         self.batch_size = model.input.shape[0]
 
     def evaluate(self, data_eval, output_suffix, limit=None):
-        ppls_real, norm_probabs_real, corr_pols_real = evaluate(self.model, data_eval['stories_real'][:limit], data_eval['sentiment_real'][:limit])
-        ppls_fake, norm_probabs_fake, corr_pols_fake = evaluate(self.model, data_eval['stories_fake'][:limit], data_eval['sentiment_fake'][:limit])
+        ppls_one, norm_probabs_one, corr_pols_one = evaluate(self.model, data_eval['stories_one'][:limit], data_eval['sentiment_one'][:limit])
+        ppls_two, norm_probabs_two, corr_pols_two = evaluate(self.model, data_eval['stories_two'][:limit], data_eval['sentiment_two'][:limit])
 
-        ppls_result = ppls_real[:, -1].ravel() < ppls_fake[:, -1].ravel()
-        ppls_accuracy = np.count_nonzero(ppls_result)/ppls_result.shape[0]
-        probabs_result = norm_probabs_real[:, -1].ravel() > norm_probabs_fake[:, -1].ravel()
-        probabs_accuracy = np.count_nonzero(probabs_result)/probabs_result.shape[0]
+        ppls_result = ppls_one[:, -1].ravel() < ppls_two[:, -1].ravel()
+        probabs_result = norm_probabs_one[:, -1].ravel() > norm_probabs_two[:, -1].ravel()
+
+        y_pred_ppls = (2-ppls_result.astype(int))
+        y_pred_probabs = (2-probabs_result.astype(int))
+
+        ppls_accuracy = np.count_nonzero(y==y_pred_ppls)/y.shape[0]
+        probabs_accuracy = np.count_nonzero(y==y_pred_probabs)/y.shape[0]
+
         with open(os.path.join(self.output_dir, 'evaluate-accuracy-%s.tsv' % output_suffix), 'w') as f:
             f.write('type\tscore\n')
             f.write('%s\t%f\n' % ('accuracy-on-pplty', ppls_accuracy))
             f.write('%s\t%f\n' % ('accuracy-on-probab_ratio', probabs_accuracy))
 
         output = np.concatenate([
-            ppls_real[:, :4], ppls_real[:, 4, None], ppls_fake[:, 4, None],
+            ppls_one[:, :4], ppls_one[:, 4, None], ppls_two[:, 4, None],
         ], axis=1)
         header = '\t'.join(['ppl1', 'ppl2', 'ppl3', 'ppl4', 'ppl5a', 'ppl5b'])
         np.savetxt(os.path.join(self.output_dir, 'evaluate-pplty-%s.tsv' % output_suffix),
             output, header=header, delimiter='\t')
 
         output = np.concatenate([
-            norm_probabs_real[:, :4], norm_probabs_real[:, 4, None], norm_probabs_fake[:, 4, None],
+            norm_probabs_one[:, :4], norm_probabs_one[:, 4, None], norm_probabs_two[:, 4, None],
         ], axis=1)
         header = '\t'.join(['probab_ratio1', 'probab_ratio2', 'probab_ratio3', 'probab_ratio4', 'probab_ratio5a', 'probab_ratio5b'])
         np.savetxt(os.path.join(self.output_dir, 'evaluate-probab_ratio-%s.tsv' % output_suffix),
             output, header=header, delimiter='\t')
 
         output = np.concatenate([
-            corr_pols_real[:, :4], corr_pols_real[:, 4, None], corr_pols_fake[:, 4, None]
+            corr_pols_one[:, :4], corr_pols_one[:, 4, None], corr_pols_two[:, 4, None]
         ], axis=1)
         header = '\t'.join(['corr_pol1', 'corr_pol2', 'corr_pol3', 'corr_pol4', 'corr_pol5a', 'corr_pol5b'])
         np.savetxt(os.path.join(self.output_dir, 'evaluate-sentiment-%s.tsv' % output_suffix),
             output, header=header, delimiter='\t', fmt='%d')
 
     def predict(self, data_eval, output_suffix, limit=None):
-        ppls_real, norm_probabs_real, _ = evaluate(self.model, data_eval['stories_real'][:limit], data_eval['sentiment_real'][:limit])
-        ppls_fake, norm_probabs_fake, _ = evaluate(self.model, data_eval['stories_fake'][:limit], data_eval['sentiment_fake'][:limit])
+        ppls_one, norm_probabs_one, _ = evaluate(self.model, data_eval['stories_one'][:limit], data_eval['sentiment_one'][:limit])
+        ppls_two, norm_probabs_two, _ = evaluate(self.model, data_eval['stories_two'][:limit], data_eval['sentiment_two'][:limit])
 
-        ppls_result = ppls_real[:, -1].ravel() < ppls_fake[:, -1].ravel()
-        probabs_result = norm_probabs_real[:, -1].ravel() > norm_probabs_fake[:, -1].ravel()
+        ppls_result = ppls_one[:, -1].ravel() < ppls_two[:, -1].ravel()
+        probabs_result = norm_probabs_one[:, -1].ravel() > norm_probabs_two[:, -1].ravel()
 
         predictions_ppls = (2-ppls_result.astype(int))
         predictions_probabs = (2-probabs_result.astype(int))
@@ -229,20 +234,24 @@ class ModelWrapper:
             print('*** skipping training ***')
             return
 
+        y = data_eval['stories_correct'][:limit]
         for ep in range(self.global_step, max_epochs):
             print('Epoch %d/%d' % (ep+1, max_epochs))
 
-            loss = train_one_epoch(self.model, data_train['stories_real'][:limit], data_train['sentiment_real'][:limit])
+            loss = train_one_epoch(self.model, data_train['stories_one'][:limit], data_train['sentiment_one'][:limit])
 
             if ep % eval_each_epoch == 0:
-                ppls_real, norm_probabs_real, _ = evaluate(self.model, data_eval['stories_real'][:limit], data_eval['sentiment_real'][:limit])
-                ppls_fake, norm_probabs_fake, _ = evaluate(self.model, data_eval['stories_fake'][:limit], data_eval['sentiment_fake'][:limit])
+                ppls_one, norm_probabs_one, _ = evaluate(self.model, data_eval['stories_one'][:limit], data_eval['sentiment_one'][:limit])
+                ppls_two, norm_probabs_two, _ = evaluate(self.model, data_eval['stories_two'][:limit], data_eval['sentiment_two'][:limit])
 
-                ppls_result = ppls_real[:, -1].ravel() < ppls_fake[:, -1].ravel()
-                ppls_accuracy = np.count_nonzero(ppls_result)/ppls_result.shape[0]
+                ppls_result = ppls_one[:, -1].ravel() < ppls_two[:, -1].ravel()
+                probabs_result = norm_probabs_one[:, -1].ravel() > norm_probabs_two[:, -1].ravel()
 
-                probabs_result = norm_probabs_real[:, -1].ravel() > norm_probabs_fake[:, -1].ravel()
-                probabs_accuracy = np.count_nonzero(probabs_result)/probabs_result.shape[0]
+                y_pred_ppls = (2-ppls_result.astype(int))
+                y_pred_probabs = (2-probabs_result.astype(int))
+
+                ppls_accuracy = np.count_nonzero(y==y_pred_ppls)/y.shape[0]
+                probabs_accuracy = np.count_nonzero(y==y_pred_probabs)/y.shape[0]
 
             mode = 'w' if ep == 0 else 'a'
             with open(os.path.join(self.output_dir, 'training-report.tsv'), mode) as fout:

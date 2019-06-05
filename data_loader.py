@@ -29,7 +29,7 @@ class DataLoader:
         except:
             texts_train = read_sct_stories(os.path.join(self.data_dir, VOCABULARY_FILE))
             tok = Tokenizer(max_vocabulary_size=VOCABULARY_SIZE).fit(
-                texts_train.begin + texts_train.end_real)
+                texts_train.begin + texts_train.end_one)
             with open(tokenizer_fname, 'wb') as f:
                 pickle.dump(tok, f)
         return tok
@@ -45,13 +45,14 @@ class DataLoader:
             data = {}
             stories = read_sct_stories(data_fname)
             sequences = sct_stories_to_sequences(tok.texts_to_sequences, stories, max_seq_len=self.max_seq_len)
-            data['stories_real'] = np.concatenate([sequences.begin, sequences.end_real[:, None, :]], axis=1)
-            if not sequences.end_fake is None:
-                data['stories_fake'] = np.concatenate([sequences.begin, sequences.end_fake[:, None, :]], axis=1)
-            sentiment_real, sentiment_fake = compute_sentiment(stories)
-            data['sentiment_real'] = sentiment_real
-            if not sentiment_fake is None:
-                data['sentiment_fake'] = sentiment_fake
+            data['stories_one'] = np.concatenate([sequences.begin, sequences.end_one[:, None, :]], axis=1)
+            if not sequences.end_two is None:
+                data['stories_two'] = np.concatenate([sequences.begin, sequences.end_two[:, None, :]], axis=1)
+                data['stories_correct'] = sequences.correct_end
+            sentiment_one, sentiment_two = compute_sentiment(stories)
+            data['sentiment_one'] = sentiment_one
+            if not sentiment_two is None:
+                data['sentiment_two'] = sentiment_two
             with open(cache_fname, 'wb') as f:
                 pickle.dump(data, f)
         return data

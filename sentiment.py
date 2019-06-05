@@ -31,15 +31,15 @@ def vader_quantize_polarities(polarities, mu=0.05):
 
 def compute_sentiment(sct_texts, quantize=True):
     polarity_train_begin = vader_polarity_scores(sct_texts.begin).reshape(-1, 4, 4)
-    polarity_train_end_real = vader_polarity_scores(sct_texts.end_real)
-    all_end_real = np.concatenate([polarity_train_begin, polarity_train_end_real[:, None, :]], axis=1)
+    polarity_train_end_one = vader_polarity_scores(sct_texts.end_one)
+    all_end_one = np.concatenate([polarity_train_begin, polarity_train_end_one[:, None, :]], axis=1)
     if quantize:
-        all_end_real = vader_quantize_polarities(all_end_real)
-    if sct_texts.end_fake is None:
-        return all_end_real, None
+        all_end_one = vader_quantize_polarities(all_end_one)
+    if sct_texts.end_two is None:
+        return all_end_one, None
     else:
-        polarity_train_end_fake = vader_polarity_scores(sct_texts.end_fake)
-        all_end_fake = np.concatenate([polarity_train_begin, polarity_train_end_fake[:, None, :]], axis=1)
+        polarity_train_end_two = vader_polarity_scores(sct_texts.end_two)
+        all_end_two = np.concatenate([polarity_train_begin, polarity_train_end_two[:, None, :]], axis=1)
         if quantize:
-            all_end_fake = vader_quantize_polarities(all_end_fake)
-        return all_end_real, all_end_fake
+            all_end_two = vader_quantize_polarities(all_end_two)
+        return all_end_one, all_end_two
