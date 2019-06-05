@@ -251,7 +251,7 @@ class ModelWrapper:
         print('np.log(proba_ratio_one[:, -1, None])', np.log(proba_ratio_one[:, -1, None]).shape)
         print('np.log(proba_es_one[:, -1, None])', np.log(proba_es_one[:, -1, None]).shape)
         print('np.log(proba_e_one[:, -1, None])', np.log(proba_e_one[:, -1, None]).shape)
-        print('to_categorical(data_eval['sentiment_one'][:limit], 3)', to_categorical(data_eval['sentiment_one'][:limit], 3).shape)
+        print("to_categorical(data_eval['sentiment_one'][:limit], 3)", to_categorical(data_eval['sentiment_one'][:limit], 3).shape)
 
         features_one = np.concatenate([
             np.log(proba_ratio_one[:, -1, None]),
