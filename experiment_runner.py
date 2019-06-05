@@ -248,23 +248,18 @@ class ModelWrapper:
         _, proba_ratio_one, _, proba_es_one, proba_e_one = evaluate(self.model, data_eval['stories_one'][:limit], data_eval['sentiment_one'][:limit])
         _, proba_ratio_two, _, proba_es_two, proba_e_two = evaluate(self.model, data_eval['stories_two'][:limit], data_eval['sentiment_two'][:limit])
 
-        print('np.log(proba_ratio_one[:, -1, None])', np.log(proba_ratio_one[:, -1, None]).shape)
-        print('np.log(proba_es_one[:, -1, None])', np.log(proba_es_one[:, -1, None]).shape)
-        print('np.log(proba_e_one[:, -1, None])', np.log(proba_e_one[:, -1, None]).shape)
-        print("to_categorical(data_eval['sentiment_one'][:limit], 3)", to_categorical(data_eval['sentiment_one'][:limit], 3).shape)
-
         features_one = np.concatenate([
             np.log(proba_ratio_one[:, -1, None]),
             np.log(proba_es_one[:, -1, None]),
             np.log(proba_e_one[:, -1, None]),
-            to_categorical(data_eval['sentiment_one'][:limit], 3)
+            to_categorical(data_eval['sentiment_one'][:limit, -1], 3)
         ], axis=1)
 
         features_two = np.concatenate([
             np.log(proba_ratio_two[:, -1, None]),
             np.log(proba_es_two[:, -1, None]),
             np.log(proba_e_two[:, -1, None]),
-            to_categorical(data_eval['sentiment_two'][:limit], 3)
+            to_categorical(data_eval['sentiment_two'][:limit, -1], 3)
         ], axis=1)
 
         all_features = np.concatenate([features_one, features_two])
