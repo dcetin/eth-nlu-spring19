@@ -248,30 +248,24 @@ class ModelWrapper:
         _, proba_ratio_one, _, proba_es_one, proba_e_one = evaluate(self.model, data_eval['stories_one'][:limit], data_eval['sentiment_one'][:limit])
         _, proba_ratio_two, _, proba_es_two, proba_e_two = evaluate(self.model, data_eval['stories_two'][:limit], data_eval['sentiment_two'][:limit])
 
-        features_one = np.concatenate([
+        all_features = np.concatenate([
             np.log(proba_ratio_one[:, -1, None]),
             np.log(proba_es_one[:, -1, None]),
             np.log(proba_e_one[:, -1, None]),
-            to_categorical(data_eval['sentiment_one'][:limit, -1], 3)
-        ], axis=1)
-
-        features_two = np.concatenate([
             np.log(proba_ratio_two[:, -1, None]),
             np.log(proba_es_two[:, -1, None]),
             np.log(proba_e_two[:, -1, None]),
+            to_categorical(data_eval['sentiment_one'][:limit, -1], 3),
             to_categorical(data_eval['sentiment_two'][:limit, -1], 3)
         ], axis=1)
 
-        all_features = np.concatenate([features_one, features_two])
-        header = 'proba_ratio\tproba_es\tproba_e\tsent_neg\tsent_neu\tsent_pos'
+        header = 'one_proba_ratio\tone_proba_es\tone_proba_e\ttwo_proba_ratio\ttwo_proba_es\ttwo_proba_e\tone_sent_neg\tone_sent_neu\tone_sent_pos\ttwo_sent_neg\ttwo_sent_neu\ttwo_sent_pos'
         np.savetxt(os.path.join(self.output_dir, '%s-transform-features.tsv' % output_prefix),
             all_features, delimiter='\t', header=header)
 
         if 'stories_correct' in data_eval:
-            labels_one = data_eval['stories_correct'][:limit] == 1
-            labels_two = data_eval['stories_correct'][:limit] == 2
-            all_labels = np.concatenate([labels_one, labels_two])
-            header = 'is_correct_ending'
+            all_labels = data_eval['stories_correct'][:limit]
+            header = 'correct_ending'
             np.savetxt(os.path.join(self.output_dir, '%s-transform-labels.tsv' % output_prefix),
                 all_labels, delimiter='\t', fmt='%d', header=header)
 
