@@ -269,7 +269,7 @@ class ModelWrapper:
             np.savetxt(os.path.join(self.output_dir, '%s-transform-labels.tsv' % output_prefix),
                 all_labels, delimiter='\t', fmt='%d', header=header)
 
-    def train(self, data_train, data_eval, max_epochs=10, limit=None, eval_each_epoch=1):
+    def train(self, data_train, data_eval, max_epochs=10, limit=None, eval_each_epoch=1, checkpoint_each_epoch=1):
         n_epochs = max_epochs - self.global_step
         if n_epochs <= 0:
             print('*** skipping training ***')
@@ -280,6 +280,11 @@ class ModelWrapper:
             print('Epoch %d/%d' % (ep+1, max_epochs))
 
             loss = train_one_epoch(self.model, data_train['stories_one'][:limit], data_train['sentiment_one'][:limit])
+
+            if ep % checkpoint_each_epoch == 0:
+                ckpt_path = os.path.join(self.output_dir, 'model_weights-%d.h5' % (ep+1))
+                self.model.save_weights(ckpt_path)
+                print('*** saved model weights for epoch %d ***' % (ep+1))
 
             if ep % eval_each_epoch == 0:
                 ppls_one, norm_probabs_one, corr_pols_one, _, _ = evaluate(self.model, data_eval['stories_one'][:limit], data_eval['sentiment_one'][:limit])
