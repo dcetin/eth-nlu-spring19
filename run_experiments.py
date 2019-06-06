@@ -33,6 +33,7 @@ argparser.add_argument('--train-for', action='store', dest='train_for', help='tr
 argparser.add_argument('--evaluate-all', action='store_true', dest='evaluate_all', help='evaluate on all data')
 argparser.add_argument('--predict-all', action='store_true', dest='predict_all', help='predict on all data')
 argparser.add_argument('--transform-all', action='store_true', dest='transform_all', help='transform all data to feature space')
+argparser.add_argument('--checkpoint', action='store', dest='checkpoint', help='load this specific checkpoint', default=None, type=int)
 args = argparser.parse_args()
 
 loader = DataLoader(
@@ -57,7 +58,7 @@ elif args.list_models:
     print('\n'.join(runner.list_models()))
     exit(0)
 elif args.load_experiment:
-    model = runner.get_experiment(args.load_experiment)
+    model = runner.get_experiment(args.load_experiment, epoch=args.checkpoint)
 elif args.new_experiment:
     model = runner.new_experiment(args.new_experiment, args.model_name, **args.model_params)
 
