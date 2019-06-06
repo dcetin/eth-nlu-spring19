@@ -181,7 +181,7 @@ def evaluate(model, stories, sentiments, batch_size=50, return_hidden=False):
             sentiments_correct[:total_counts],
             proba_es[:total_counts],
             proba_e[:total_counts],
-            hidden_out
+            hidden_out[:total_counts]
         )
     else:
         return (perplexities[:total_counts],
