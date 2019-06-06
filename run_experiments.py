@@ -32,7 +32,7 @@ argparser.add_argument('--params', action='store', dest='model_params', help='sp
 argparser.add_argument('--train-for', action='store', dest='train_for', help='train for n epochs', type=int)
 argparser.add_argument('--evaluate-all', action='store_true', dest='evaluate_all', help='evaluate on all data')
 argparser.add_argument('--predict-all', action='store_true', dest='predict_all', help='predict on all data')
-argparser.add_argument('--transform-all', action='store_true', dest='predict_all', help='transform all data to feature space')
+argparser.add_argument('--transform-all', action='store_true', dest='transform_all', help='transform all data to feature space')
 args = argparser.parse_args()
 
 loader = DataLoader(
