@@ -331,7 +331,7 @@ class ExperimentRunner:
     def list_models(self):
         return list(model_zoo.keys())
 
-    def get_experiment(self, experiment_name):
+    def get_experiment(self, experiment_name, epoch=None):
         output_dir = os.path.join(self.output_dir, '%s' % experiment_name)
         with open(os.path.join(output_dir, 'settings.json'), 'r') as f:
             settings = json.load(f)
@@ -339,8 +339,12 @@ class ExperimentRunner:
             global_step = int(f.read())
         model = model_zoo[settings['model_name']](self.vocabulary, **settings['params'])
         try:
-            model.load_weights(os.path.join(output_dir, 'model_weights.h5'))
-            print('*** loaded model weights ***')
+            if epoch:
+                model.load_weights(os.path.join(output_dir, 'model_weights-%d.h5' % epoch))
+                print('*** loaded model weights for epoch %d ***' % epoch)
+            else:
+                model.load_weights(os.path.join(output_dir, 'model_weights.h5'))
+                print('*** loaded model weights ***')
         except:
             pass
         return ModelWrapper(output_dir, global_step, model)
