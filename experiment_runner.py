@@ -260,8 +260,8 @@ class ModelWrapper:
             predictions_probabs, delimiter='\t', fmt='%d')
 
     def transform(self, data_eval, output_prefix, limit=None):
-        _, proba_ratio_one, _, proba_es_one, proba_e_one, hidden_one = evaluate(self.model, data_eval['stories_one'][:limit], data_eval['sentiment_one'][:limit])
-        _, proba_ratio_two, _, proba_es_two, proba_e_two, hidden_two = evaluate(self.model, data_eval['stories_two'][:limit], data_eval['sentiment_two'][:limit])
+        _, proba_ratio_one, _, proba_es_one, proba_e_one, hidden_one = evaluate(self.model, data_eval['stories_one'][:limit], data_eval['sentiment_one'][:limit], return_hidden=True)
+        _, proba_ratio_two, _, proba_es_two, proba_e_two, hidden_two = evaluate(self.model, data_eval['stories_two'][:limit], data_eval['sentiment_two'][:limit], return_hidden=True)
 
         all_features = np.concatenate([
             np.log(proba_ratio_one[:, -1, None]),
