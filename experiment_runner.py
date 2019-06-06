@@ -1,9 +1,9 @@
 from models import model_zoo
 import os
 from tensorflow import keras
-from tensorflow.keras.utils import Progbar
+from keras.utils import Progbar
 from scipy.special import softmax
-from tensorflow.keras.utils import to_categorical
+from keras.utils import to_categorical
 import tensorflow as tf
 import numpy as np
 import pickle
@@ -135,6 +135,7 @@ def evaluate(model, stories, sentiments, batch_size=50):
     proba_es = np.zeros(batches_stories.shape[:-1])
     proba_e = np.zeros(batches_stories.shape[:-1])
     sentiments_correct = np.zeros(batches_stories.shape[:-1], dtype='int32')
+    hidden_out = None # instantiate lazily
 
     for bn, (stories_batch, sentiments_batch) in enumerate(zip(batches_stories, batches_sentiments)):
         losses = list()
@@ -145,11 +146,15 @@ def evaluate(model, stories, sentiments, batch_size=50):
             sequences = stories_batch[:, i]
             sentiments = sentiments_batch[:, i]
             X, Y = get_XY_pair(sequences)
-            Y_pred_proba, sentiments_proba, _ = model.predict_on_batch(X)
+            Y_pred_proba, sentiments_proba, hidden = model.predict_on_batch(X)
             perplexities[bn, :, i] = calculate_perplexities(Y, Y_pred_proba)
             proba_es[bn, :, i] = calculate_probabs(Y, Y_pred_proba)
             sentiments_pred = np.argmax(sentiments_proba, axis=1)
             sentiments_correct[bn, :, i] = (sentiments.squeeze() == sentiments_pred)
+            if hidden_out is None:
+                shape = tuple(batches_stories.shape[:-1]) + (hidden.shape[-1],)
+                hidden_out = np.zeros(shape)
+            hidden_out[bn, :, i] = hidden
 
         # compute P(sentence_n)
         for i in range(stories_batch.shape[1]):
@@ -168,12 +173,14 @@ def evaluate(model, stories, sentiments, batch_size=50):
     proba_es = proba_es.reshape(-1, stories.shape[1])
     total_counts = np.sum(counts_stories)
     proba_ratio = np.exp(np.log(proba_es) - np.log(proba_e))
+    hidden_out = hidden_out.reshape(-1, stories.shape[1])
 
     return (perplexities[:total_counts],
         proba_ratio[:total_counts],
         sentiments_correct[:total_counts],
         proba_es[:total_counts],
         proba_e[:total_counts],
+        hidden_out
     )
 
 class ModelWrapper:
@@ -186,8 +193,8 @@ class ModelWrapper:
     def evaluate(self, data_eval, output_prefix, limit=None):
         y = data_eval['stories_correct'][:limit]
 
-        ppls_one, norm_probabs_one, corr_pols_one, _, _ = evaluate(self.model, data_eval['stories_one'][:limit], data_eval['sentiment_one'][:limit])
-        ppls_two, norm_probabs_two, corr_pols_two, _, _ = evaluate(self.model, data_eval['stories_two'][:limit], data_eval['sentiment_two'][:limit])
+        ppls_one, norm_probabs_one, corr_pols_one, _, _, _ = evaluate(self.model, data_eval['stories_one'][:limit], data_eval['sentiment_one'][:limit])
+        ppls_two, norm_probabs_two, corr_pols_two, _, _, _ = evaluate(self.model, data_eval['stories_two'][:limit], data_eval['sentiment_two'][:limit])
 
         ppls_result = ppls_one[:, -1].ravel() < ppls_two[:, -1].ravel()
         probabs_result = norm_probabs_one[:, -1].ravel() > norm_probabs_two[:, -1].ravel()
@@ -229,8 +236,8 @@ class ModelWrapper:
             output, header=header, delimiter='\t', fmt='%d')
 
     def predict(self, data_eval, output_prefix, limit=None):
-        ppls_one, norm_probabs_one, _, _, _ = evaluate(self.model, data_eval['stories_one'][:limit], data_eval['sentiment_one'][:limit])
-        ppls_two, norm_probabs_two, _, _, _ = evaluate(self.model, data_eval['stories_two'][:limit], data_eval['sentiment_two'][:limit])
+        ppls_one, norm_probabs_one, _, _, _, _ = evaluate(self.model, data_eval['stories_one'][:limit], data_eval['sentiment_one'][:limit])
+        ppls_two, norm_probabs_two, _, _, _, _ = evaluate(self.model, data_eval['stories_two'][:limit], data_eval['sentiment_two'][:limit])
 
         ppls_result = ppls_one[:, -1].ravel() < ppls_two[:, -1].ravel()
         probabs_result = norm_probabs_one[:, -1].ravel() > norm_probabs_two[:, -1].ravel()
@@ -245,8 +252,8 @@ class ModelWrapper:
             predictions_probabs, delimiter='\t', fmt='%d')
 
     def transform(self, data_eval, output_prefix, limit=None):
-        _, proba_ratio_one, _, proba_es_one, proba_e_one = evaluate(self.model, data_eval['stories_one'][:limit], data_eval['sentiment_one'][:limit])
-        _, proba_ratio_two, _, proba_es_two, proba_e_two = evaluate(self.model, data_eval['stories_two'][:limit], data_eval['sentiment_two'][:limit])
+        _, proba_ratio_one, _, proba_es_one, proba_e_one, hidden_one = evaluate(self.model, data_eval['stories_one'][:limit], data_eval['sentiment_one'][:limit])
+        _, proba_ratio_two, _, proba_es_two, proba_e_two, hidden_two = evaluate(self.model, data_eval['stories_two'][:limit], data_eval['sentiment_two'][:limit])
 
         all_features = np.concatenate([
             np.log(proba_ratio_one[:, -1, None]),
@@ -262,6 +269,9 @@ class ModelWrapper:
         header = 'one_proba_ratio\tone_proba_es\tone_proba_e\ttwo_proba_ratio\ttwo_proba_es\ttwo_proba_e\tone_sent_neg\tone_sent_neu\tone_sent_pos\ttwo_sent_neg\ttwo_sent_neu\ttwo_sent_pos'
         np.savetxt(os.path.join(self.output_dir, '%s-transform-features.tsv' % output_prefix),
             all_features, delimiter='\t', header=header)
+
+        all_hidden = np.concatenate([hidden_one[:, -1], hidden_two[:, -1]])
+        np.save(os.path.join(self.output_dir, '%s-transform-hidden.npy' % output_prefix), all_hidden)
 
         if 'stories_correct' in data_eval:
             all_labels = data_eval['stories_correct'][:limit]
@@ -287,8 +297,8 @@ class ModelWrapper:
                 print('*** saved model weights for epoch %d ***' % (ep+1))
 
             if ep % eval_each_epoch == 0:
-                ppls_one, norm_probabs_one, corr_pols_one, _, _ = evaluate(self.model, data_eval['stories_one'][:limit], data_eval['sentiment_one'][:limit])
-                ppls_two, norm_probabs_two, corr_pols_two, _, _ = evaluate(self.model, data_eval['stories_two'][:limit], data_eval['sentiment_two'][:limit])
+                ppls_one, norm_probabs_one, corr_pols_one, _, _, _ = evaluate(self.model, data_eval['stories_one'][:limit], data_eval['sentiment_one'][:limit])
+                ppls_two, norm_probabs_two, corr_pols_two, _, _, _ = evaluate(self.model, data_eval['stories_two'][:limit], data_eval['sentiment_two'][:limit])
 
                 corr_pols = np.concatenate([corr_pols_one[:, :4], corr_pols_one[:, 4, None], corr_pols_two[:, 4, None]], axis=1).ravel()
                 sentiment_accuracy = np.count_nonzero(corr_pols)/corr_pols.shape[0]
