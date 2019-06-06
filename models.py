@@ -45,7 +45,7 @@ def model_1_fn(
         hidden_size=150,
         batch_size=50,
         max_seq_len=90,
-        rnn_type='gru',
+        rnn_type='GRU',
         use_gpu=True,
         num_layers=3,
         learning_rate=0.001,
@@ -54,10 +54,10 @@ def model_1_fn(
 
     if use_gpu:
         print('*** use rnn gpu implementation')
-        rnn_layer = layers.CuDNNLSTM if rnn_type == 'LSTM' else layers.CuDNNGRU
+        rnn_layer = layers.CuDNNLSTM if rnn_type.upper() == 'LSTM' else layers.CuDNNGRU
     else:
         print('*** use rnn cpu implementation')
-        rnn_layer = layers.LSTM if rnn_type == 'LSTM' else layers.GRU
+        rnn_layer = layers.LSTM if rnn_type.upper() == 'LSTM' else layers.GRU
     embedding_weights = get_glove_embeddings('data/glove.6B.100d.txt', 100, vocabulary)
 
     inputs = layers.Input((max_seq_len,), batch_size=batch_size)
