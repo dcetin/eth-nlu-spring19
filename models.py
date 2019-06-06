@@ -50,7 +50,8 @@ def model_1_fn(
         num_layers=3,
         learning_rate=0.001,
         dropout_rate=0.5,
-        loss_weights=None):
+        loss_weights=None,
+        use_pre_trained_embeddings=True):
 
     if use_gpu:
         print('*** use rnn gpu implementation')
@@ -58,12 +59,19 @@ def model_1_fn(
     else:
         print('*** use rnn cpu implementation')
         rnn_layer = layers.LSTM if rnn_type.upper() == 'LSTM' else layers.GRU
-    embedding_weights = get_glove_embeddings('data/glove.6B.100d.txt', 100, vocabulary)
+
+    if use_pre_trained_embeddings:
+        embeddings_initializer = initializers.Constant(
+            get_glove_embeddings('data/glove.6B.100d.txt', 100, vocabulary))
+        print('*** loaded glove embeddings ***')
+    else:
+        embeddings_initializer = 'uniform'
+        print('*** use uniform embeddings ***')
 
     inputs = layers.Input((max_seq_len,), batch_size=batch_size)
     x = layers.Embedding(len(vocabulary), hidden_size,
                                input_length=max_seq_len,
-                               embeddings_initializer=initializers.Constant(embedding_weights))(inputs)
+                               embeddings_initializer=embeddings_initializer)(inputs)
     for _ in range(num_layers):
         x = rnn_layer(hidden_size, return_sequences=True, stateful=True)(x)
         x = layers.Dropout(dropout_rate)(x)
