@@ -1,9 +1,9 @@
 from models import model_zoo
 import os
 from tensorflow import keras
-from keras.utils import Progbar
+from tensorflow.keras.utils import Progbar
 from scipy.special import softmax
-from keras.utils import to_categorical
+from tensorflow.keras.utils import to_categorical
 import tensorflow as tf
 import numpy as np
 import pickle
