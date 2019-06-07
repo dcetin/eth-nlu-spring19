@@ -353,8 +353,11 @@ class ExperimentRunner:
         output_dir = os.path.join(self.output_dir, '%s' % experiment_name)
         with open(os.path.join(output_dir, 'settings.json'), 'r') as f:
             settings = json.load(f)
-        with open(os.path.join(output_dir, 'global_step'), 'r') as f:
-            global_step = int(f.read())
+        if epoch is None:
+            with open(os.path.join(output_dir, 'global_step'), 'r') as f:
+                global_step = int(f.read())
+        else:
+            global_step = epoch
         model = model_zoo[settings['model_name']](self.vocabulary, **settings['params'])
         try:
             if epoch:
