@@ -290,7 +290,7 @@ class ModelWrapper:
     def train(self, data_train, data_eval, max_epochs=10, limit=None, eval_each_epoch=1, checkpoint_each_epoch=1):
         n_epochs = max_epochs - self.global_step
         if n_epochs <= 0:
-            print('*** skipping training ***')
+            print('*** already trained for %d epochs - skipping training ***' % self.global_step)
             return
 
         y = data_eval['stories_correct'][:limit]
