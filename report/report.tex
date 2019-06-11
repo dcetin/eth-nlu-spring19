@@ -103,6 +103,7 @@ Model                   & Perplexity          & Prob. Ratio         & Perplexity
 \bottomrule
 \end{tabularx}
 \label{tab:results}
+\caption{Validation and test accuracy scores of different configurations of our architecture}
 \end{table}
 
 \par We keep the general architecture introduced in Figure \ref{fig:model} intact and make small modifications. Unless specified, the models use an equal weighting of the loss functions while training. Ratios in parentheses denote the weight factors of language model and sentiment losses, respectively. For some models we replace the lambda layer with a weighted attention layer (\href{https://pypi.org/project/keras-self-attention/}{source}) over the word sequences. We also experiment with deepening the network by replicating the RNN-Dropout layers. We always use GRU as the recurrent cell implementation as our experiments with LSTM (not shown here) did not bring any improvement.

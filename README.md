@@ -27,9 +27,9 @@ Following examples can be simply run on Leonhard via the **train**, **eval** and
   python run_experiments.py --load "sample-experiment" --checkpoint 3 --train-for 5
   ```
 - **Evaluating a finished experiment:**
-  This command evaluates the finished experiment for the specified epoch using the saved checkpoints. Additional flags at the end respectively creates evaluation files that summarizes the results, produces predictions and transforms the validation dataset by extracting learned features.
+  This command evaluates the finished experiment for the checkpoint with best validation result. Additional flags at the end respectively creates evaluation files that summarizes the results, produces predictions and transforms the validation dataset by extracting learned features. Instead of using `bestval` flag, another epoch can be provided via the `checkpoint` flag.
   ```bash
-  python run_experiments.py --load "sample-experiment" --checkpoint 2 --evaluate-all --predict-all --transform-all
+  python run_experiments.py --load "sample-experiment" --bestval --evaluate-all --predict-all --transform-all
   ```
 - **Running classifiers on top of extracted features:**
   This command runs a set of classifiers on top of the features extracted from the validation dataset.
