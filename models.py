@@ -1,5 +1,5 @@
-from tensorflow.keras import layers, models, initializers, optimizers
-import tensorflow.keras.backend as K
+from keras import layers, models, initializers, optimizers
+import keras.backend as K
 import numpy as np
 import tensorflow as tf
 
@@ -40,7 +40,8 @@ def get_glove_embeddings(fname, embedding_dim, word_index):
             embedding_matrix[i] = np.random.uniform(low=-0.25, high=0.25, size=embedding_dim)
     return embedding_matrix
 
-def model_1_fn(
+# Default model
+def default_fn(
         vocabulary,
         hidden_size=150,
         batch_size=50,
@@ -68,7 +69,7 @@ def model_1_fn(
         embeddings_initializer = 'uniform'
         print('*** use uniform embeddings ***')
 
-    inputs = layers.Input((max_seq_len,), batch_size=batch_size)
+    inputs = layers.Input((max_seq_len,), batch_shape=(batch_size, max_seq_len))
     x = layers.Embedding(len(vocabulary), hidden_size,
                                input_length=max_seq_len,
                                embeddings_initializer=embeddings_initializer)(inputs)
@@ -92,4 +93,62 @@ def model_1_fn(
 
     return model
 
-model_zoo = {'model-1': model_1_fn}
+from keras_self_attention import SeqSelfAttention, SeqWeightedAttention
+
+# Attention on sentiment
+def attention_fn(
+        vocabulary,
+        hidden_size=150,
+        batch_size=50,
+        max_seq_len=90,
+        rnn_type='GRU',
+        use_gpu=True,
+        num_layers=3,
+        learning_rate=0.001,
+        dropout_rate=0.5,
+        loss_weights=None,
+        use_pre_trained_embeddings=True):
+
+    if use_gpu:
+        print('*** use rnn gpu implementation')
+        rnn_layer = layers.CuDNNLSTM if rnn_type.upper() == 'LSTM' else layers.CuDNNGRU
+    else:
+        print('*** use rnn cpu implementation')
+        rnn_layer = layers.LSTM if rnn_type.upper() == 'LSTM' else layers.GRU
+
+    if use_pre_trained_embeddings:
+        embeddings_initializer = initializers.Constant(
+            get_glove_embeddings('data/glove.6B.100d.txt', 100, vocabulary))
+        print('*** loaded glove embeddings ***')
+    else:
+        embeddings_initializer = 'uniform'
+        print('*** use uniform embeddings ***')
+
+    inputs = layers.Input((max_seq_len,), batch_shape=(batch_size, max_seq_len))
+    x = layers.Embedding(len(vocabulary), hidden_size,
+                               input_length=max_seq_len,
+                               embeddings_initializer=embeddings_initializer)(inputs)
+    for _ in range(num_layers):
+        x = rnn_layer(hidden_size, return_sequences=True, stateful=True)(x)
+        x = layers.Dropout(dropout_rate)(x)
+
+    # last_out = SeqSelfAttention(attention_activation='sigmoid')(x)
+    last_out = SeqWeightedAttention()(x)
+    # last_out = SeqSelfAttention(attention_activation='sigmoid', attention_type=SeqSelfAttention.ATTENTION_TYPE_MUL)(x)
+    # last_out = layers.Lambda(lambda x: x[:,-1])(x)
+
+    polarities = layers.Dense(3, name='polarities')(last_out)
+    polarities = layers.Activation('softmax')(polarities)
+
+    logits = layers.TimeDistributed(layers.Dense(len(vocabulary)), name='logits')(x)
+    lm = layers.Activation('softmax')(logits)
+
+    optimizer = optimizers.Adam(lr=learning_rate, clipnorm=1.0)
+
+    model = models.Model(inputs, [lm, polarities, last_out])
+    model.compile(loss=[custom_loss(logits), 'sparse_categorical_crossentropy', None], optimizer=optimizer, loss_weights=loss_weights)
+    model.summary()
+
+    return model
+
+model_zoo = {'default_model': default_fn, 'attention_model': attention_fn}

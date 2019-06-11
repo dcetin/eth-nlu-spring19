@@ -1,5 +1,6 @@
 from data_loader import DataLoader
 from experiment_runner import ExperimentRunner
+from classifiers import run_classifiers
 import argparse
 from sys import exit
 import nltk
@@ -34,6 +35,7 @@ argparser.add_argument('--evaluate-all', action='store_true', dest='evaluate_all
 argparser.add_argument('--predict-all', action='store_true', dest='predict_all', help='predict on all data')
 argparser.add_argument('--transform-all', action='store_true', dest='transform_all', help='transform all data to feature space')
 argparser.add_argument('--checkpoint', action='store', dest='checkpoint', help='load this specific checkpoint', default=None, type=int)
+argparser.add_argument('--classifiers', action='store_true', dest='classifiers', help='run classifiers script on extracted features')
 args = argparser.parse_args()
 
 loader = DataLoader(
@@ -50,6 +52,11 @@ data_report = loader.get_data('test-stories.csv')
 runner = ExperimentRunner(
     output_dir=args.results_dir,
     vocabulary=loader.get_tokenizer().word_index)
+
+if args.classifiers:
+    PREFIX = './output/' + args.load_experiment
+    run_classifiers(PREFIX)
+    exit(0)
 
 if args.list_experiments:
     print('\n'.join(runner.list_experiments()))

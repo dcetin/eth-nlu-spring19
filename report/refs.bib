@@ -1,0 +1,123 @@
+% HIGH LEVEL REFERENCES
+
+% Story Cloze Task, ROCStories
+% http://cs.rochester.edu/nlp/rocstories/
+@article{mostafazadeh2016corpus,
+  title={A corpus and evaluation framework for deeper understanding of commonsense stories},
+  author={Mostafazadeh, Nasrin and Chambers, Nathanael and He, Xiaodong and Parikh, Devi and Batra, Dhruv and Vanderwende, Lucy and Kohli, Pushmeet and Allen, James},
+  journal={arXiv preprint arXiv:1604.01696},
+  year={2016}
+}
+% LSDSem’17 Shared Task
+% Discusses different approaches and their results
+@inproceedings{mostafazadeh2017lsdsem,
+  title={Lsdsem 2017 shared task: The story cloze test},
+  author={Mostafazadeh, Nasrin and Roth, Michael and Louis, Annie and Chambers, Nathanael and Allen, James},
+  booktitle={Proceedings of the 2nd Workshop on Linking Models of Lexical, Sentential and Discourse-level Semantics},
+  pages={46--51},
+  year={2017}
+}
+
+% LANGUAGE MODEL PAPERS
+
+% Melissa Roemmele (USC)
+% Used LM to generate fake endings, [10] in description
+% https://github.com/roemmele/narrative-prediction
+@inproceedings{roemmele2017rnn,
+  title={An rnn-based binary classifier for the story cloze test},
+  author={Roemmele, Melissa and Kobayashi, Sosuke and Inoue, Naoya and Gordon, Andrew},
+  booktitle={Proceedings of the 2nd Workshop on Linking Models of Lexical, Sentential and Discourse-level Semantics},
+  pages={74--80},
+  year={2017}
+}
+% Roy Schwartz (UW)
+% Combined stylistic features with LM predictions
+% https://github.com/roys174/writing_style
+@article{schwartz2017effect,
+  title={The effect of different writing tasks on linguistic style: A case study of the ROC story cloze task},
+  author={Schwartz, Roy and Sap, Maarten and Konstas, Ioannis and Zilles, Li and Choi, Yejin and Smith, Noah A},
+  journal={arXiv preprint arXiv:1702.01841},
+  year={2017}
+}
+% Snigdha Chaturvedi, Haoruo Peng (UIUC)
+% Trained a semantic, log-bilinear LM to obtain cond. probabilities
+% https://github.com/snigdhac/StoryComprehension_EMNLP
+@inproceedings{chaturvedi2017story,
+  title={Story comprehension for predicting what happens next},
+  author={Chaturvedi, Snigdha and Peng, Haoruo and Roth, Dan},
+  booktitle={Proceedings of the 2017 Conference on Empirical Methods in Natural Language Processing},
+  pages={1603--1614},
+  year={2017}
+}
+% Haoruo Peng, Snigdha Chaturvedi (UIUC)
+% Trained LM on top of the joint semantic representations
+@inproceedings{peng2017joint,
+  title={A joint model for semantic sequences: Frames, entities, sentiments},
+  author={Peng, Haoruo and Chaturvedi, Snigdha and Roth, Dan},
+  booktitle={Proceedings of the 21st Conference on Computational Natural Language Learning (CoNLL 2017)},
+  pages={173--183},
+  year={2017}
+}
+
+% RELATED NON-LM WORKS
+
+% [11] on description
+@inproceedings{bugert2017lsdsem,
+  title={LSDSem 2017: Exploring data generation methods for the story cloze test},
+  author={Bugert, Michael and Puzikov, Yevgeniy and R{\"u}ckl{\'e}, Andreas and Eckle-Kohler, Judith and Martin, Teresa and Mart{\'\i}nez-C{\'a}mara, Eugenio and Sorokin, Daniil and Peyrard, Maxime and Gurevych, Iryna},
+  booktitle={Proceedings of the 2nd Workshop on Linking Models of Lexical, Sentential and Discourse-level Semantics},
+  pages={56--61},
+  year={2017}
+}
+
+% CGAN Paper, [12] on description
+@inproceedings{wang2017conditional,
+  title={Conditional Generative Adversarial Networks for Commonsense Machine Comprehension.},
+  author={Wang, Bingning and Liu, Kang and Zhao, Jun},
+  booktitle={IJCAI},
+  pages={4123--4129},
+  year={2017}
+}
+
+% REFERENCE MATERIAL
+
+% vaderSentiment
+@inproceedings{hutto2014vader,
+  title={Vader: A parsimonious rule-based model for sentiment analysis of social media text},
+  author={Hutto, Clayton J and Gilbert, Eric},
+  booktitle={Eighth international AAAI conference on weblogs and social media},
+  year={2014}
+}
+
+% GloVe
+@inproceedings{pennington2014glove,
+  title={Glove: Global vectors for word representation},
+  author={Pennington, Jeffrey and Socher, Richard and Manning, Christopher},
+  booktitle={Proceedings of the 2014 conference on empirical methods in natural language processing (EMNLP)},
+  pages={1532--1543},
+  year={2014}
+}
+
+% SUPPLEMENTARY MATERIAL
+
+% keras-self-attention
+% https://github.com/CyberZHG/keras-self-attention
+% https://pypi.org/project/keras-self-attention/
+@online{keras-self-attention,
+  author = {CyberZHG},
+  title = {keras-self-attention},
+  year = 2019,
+  url = {https://pypi.org/project/keras-self-attention/},
+  urldate = {2019-06-10}
+}
+
+% Andriy Mnih
+% log-bilinear LM paper, mentioned above
+@inproceedings{mnih2007three,
+  title={Three new graphical models for statistical language modelling},
+  author={Mnih, Andriy and Hinton, Geoffrey},
+  booktitle={Proceedings of the 24th international conference on Machine learning},
+  pages={641--648},
+  year={2007},
+  organization={ACM}
+}

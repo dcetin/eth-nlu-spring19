@@ -2,7 +2,7 @@ import pickle
 import os
 from util import load_or_compute
 from tokenizer import Tokenizer
-from tensorflow.keras.preprocessing.sequence import pad_sequences
+from keras.preprocessing.sequence import pad_sequences
 from collections import namedtuple
 import csv
 import numpy as np

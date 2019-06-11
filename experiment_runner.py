@@ -1,9 +1,9 @@
 from models import model_zoo
 import os
 from tensorflow import keras
-from tensorflow.keras.utils import Progbar
+from keras.utils import Progbar
 from scipy.special import softmax
-from tensorflow.keras.utils import to_categorical
+from keras.utils import to_categorical
 import tensorflow as tf
 import numpy as np
 import pickle
@@ -115,6 +115,7 @@ def train_one_epoch(model, stories, sentiments, batch_size=50, shuffle=True):
             X, Y = get_XY_pair(sequences)
 
             loss = model.train_on_batch(X, [Y, sentiments])
+            # print(loss[:2])
             losses.append(loss)
 
         pb.update(bn+1, [('loss', np.mean(losses))])
