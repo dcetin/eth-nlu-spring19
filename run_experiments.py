@@ -5,6 +5,7 @@ import argparse
 from sys import exit
 import nltk
 import json
+from util import get_bestval_epoch
 
 RANDOM_SEED = 13
 VOCABULARY_SIZE = 20000
@@ -36,6 +37,7 @@ argparser.add_argument('--predict-all', action='store_true', dest='predict_all',
 argparser.add_argument('--transform-all', action='store_true', dest='transform_all', help='transform all data to feature space')
 argparser.add_argument('--checkpoint', action='store', dest='checkpoint', help='load this specific checkpoint', default=None, type=int)
 argparser.add_argument('--classifiers', action='store_true', dest='classifiers', help='run classifiers script on extracted features')
+argparser.add_argument('--bestval', action='store_true', dest='bestval', help='load the best model wrt validation accuracy')
 args = argparser.parse_args()
 
 loader = DataLoader(
@@ -65,7 +67,11 @@ elif args.list_models:
     print('\n'.join(runner.list_models()))
     exit(0)
 elif args.load_experiment:
-    model = runner.get_experiment(args.load_experiment, epoch=args.checkpoint)
+    if args.bestval:
+        print('bestval epoch is:', get_bestval_epoch('./output/' + args.load_experiment))
+        model = runner.get_experiment(args.load_experiment, epoch=get_bestval_epoch('./output/' + args.load_experiment))
+    else:
+        model = runner.get_experiment(args.load_experiment, epoch=args.checkpoint)
 elif args.new_experiment:
     model = runner.new_experiment(args.new_experiment, args.model_name, **args.model_params)
 

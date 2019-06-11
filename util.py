@@ -2,6 +2,7 @@ import urllib.request
 from itertools import islice
 import os
 import pickle
+import numpy as np
 
 def download_file(filename, url):
     with urllib.request.urlopen(url) as response, open(filename, 'wb') as f:
@@ -27,3 +28,10 @@ def load_or_compute(fname_cache, func, *args, **kwargs):
         with open(fname_cache, 'wb') as file:
             pickle.dump(obj, file)
             return obj
+
+def get_bestval_epoch(fname):
+    fname += '/training-report.tsv'
+    with open(fname) as f:
+        content = f.readlines()
+    content = np.asarray([[float(a) for a in x.strip().split('\t')] for x in content[1:]])
+    return np.argmax(content[:,2])+1

@@ -151,4 +151,4 @@ def attention_fn(
 
     return model
 
-model_zoo = {'default_model': default_fn, 'attention_model': attention_fn}
+model_zoo = {'default_model': default_fn, 'attention_model': attention_fn, 'model-1': default_fn, 'model-2': attention_fn}

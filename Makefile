@@ -9,7 +9,7 @@ train:
 
 eval:
 	bsub -W 04:00 -n 4 -R "rusage[mem=2048,ngpus_excl_p=1]" python run_experiments.py \
-	--load "sample-experiment" --checkpoint 2 --evaluate-all --predict-all --transform-all
+	--load "sample-experiment" --bestval --evaluate-all --predict-all --transform-all
 
 classifiers:
 	bsub -W 04:00 -n 4 -R "rusage[mem=2048,ngpus_excl_p=1]" python run_experiments.py \
